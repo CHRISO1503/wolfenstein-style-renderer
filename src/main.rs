@@ -1,7 +1,6 @@
+use input::InputHandler;
 use math::rotation::EulerAngle;
 use player::Player;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
 
 mod input;
 mod level;
@@ -30,6 +29,8 @@ fn main() -> Result<(), String> {
         .build()
         .expect("could not initialize canvas");
 
+    let mut input_handler = InputHandler::new();
+
     let player = Player::new(
         (4.5, 0.0, 6.5),
         EulerAngle::new(0.0, 0.0, 0.0).to_quaternion(),
@@ -37,18 +38,8 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
-        // Handle events
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => {
-                    break 'running;
-                }
-                _ => {}
-            }
+        if input_handler.read_inputs(&mut event_pump).is_err() {
+            break 'running;
         }
         renderer::render(&mut canvas, &player);
     }
