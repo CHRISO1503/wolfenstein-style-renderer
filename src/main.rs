@@ -1,20 +1,26 @@
+use math::rotation::EulerAngle;
+use player::Player;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
-use sdl2::render::WindowCanvas;
 
-fn render(canvas: &mut WindowCanvas, color: Color) {
-    canvas.set_draw_color(color);
-    canvas.clear();
-    canvas.present();
-}
+mod input;
+mod level;
+mod math;
+mod player;
+mod renderer;
 
+const WINDOW_WIDTH: u32 = 800;
+const WINDOW_HEIGHT: u32 = 600;
+
+// Create window
+// Initialise entities
+// Loop
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
     let window = video_subsystem
-        .window("WIIINDOW", 800, 600)
+        .window("3D Renderer Demo", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
         .build()
         .expect("could not initialize video subsystem");
@@ -23,6 +29,11 @@ fn main() -> Result<(), String> {
         .into_canvas()
         .build()
         .expect("could not initialize canvas");
+
+    let player = Player::new(
+        (4.5, 0.0, 6.5),
+        EulerAngle::new(0.0, 0.0, 0.0).to_quaternion(),
+    );
 
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
@@ -39,7 +50,7 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         }
-        render(&mut canvas, Color::RGB(0, 10, 200));
+        renderer::render(&mut canvas, &player);
     }
     Ok(())
 }
