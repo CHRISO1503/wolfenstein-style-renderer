@@ -1,35 +1,49 @@
+use std::collections::HashMap;
+
 use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
 struct KeyInput {
-    id: String,
+    keycode: Keycode,
     is_pressed: bool,
 }
 
 pub struct InputHandler {
-    key_inputs: [KeyInput; 4],
+    key_inputs: HashMap<String, KeyInput>,
 }
 
 impl InputHandler {
     pub fn new() -> Self {
         Self {
-            key_inputs: [
-                KeyInput {
-                    id: "forwards".to_string(),
-                    is_pressed: false,
-                },
-                KeyInput {
-                    id: "backwards".to_string(),
-                    is_pressed: false,
-                },
-                KeyInput {
-                    id: "left".to_string(),
-                    is_pressed: false,
-                },
-                KeyInput {
-                    id: "right".to_string(),
-                    is_pressed: false,
-                },
-            ],
+            key_inputs: HashMap::from([
+                (
+                    "forwards".to_string(),
+                    KeyInput {
+                        keycode: Keycode::W,
+                        is_pressed: false,
+                    },
+                ),
+                (
+                    "forwards".to_string(),
+                    KeyInput {
+                        keycode: Keycode::S,
+                        is_pressed: false,
+                    },
+                ),
+                (
+                    "forwards".to_string(),
+                    KeyInput {
+                        keycode: Keycode::A,
+                        is_pressed: false,
+                    },
+                ),
+                (
+                    "forwards".to_string(),
+                    KeyInput {
+                        keycode: Keycode::D,
+                        is_pressed: false,
+                    },
+                ),
+            ]),
         }
     }
 
@@ -38,49 +52,29 @@ impl InputHandler {
             match event {
                 Event::Quit { .. } => return Err("Quit pressed".to_string()),
 
-                //TODO: Figure out generic pattern matching here with KeyInput (could not get it to
-                //work)
-                //                Event::KeyDown {
-                //                  keycode: Some(Keycode::W),
-                //                repeat: false,
-                //              ..
-                //        } => self.key_inputs[0].is_pressed = true,
-                //      Event::KeyDown {
-                //        keycode: Some(Keycode::S),
-                //      repeat: false,
-                //    ..
-                //                } => self.key_inputs[1].is_pressed = true,
-                //              Event::KeyDown {
-                //                keycode: Some(Keycode::A),
-                //              repeat: false,
-                //            ..
-                //      } => self.key_inputs[2].is_pressed = true,
-                //    Event::KeyDown {
-                //                    keycode: Some(Keycode::D),
-                //                  repeat: false,
-                //                ..
-                //          } => self.key_inputs[3].is_pressed = true,
-                //
-                //              Event::KeyUp {
-                //                keycode: Some(Keycode::W),
-                //              repeat: false,
-                //            ..
-                //      } => self.key_inputs[0].is_pressed = false,
-                //    Event::KeyUp {
-                //                    keycode: Some(Keycode::S),
-                //                  repeat: false,
-                //                ..
-                //          } => self.key_inputs[1].is_pressed = false,
-                //        Event::KeyUp {
-                //          keycode: Some(Keycode::A),
-                //        repeat: false,
-                //      ..
-                //                } => self.key_inputs[2].is_pressed = false,
-                //              Event::KeyUp {
-                //                keycode: Some(Keycode::D),
-                //              repeat: false,
-                //            ..
-                //      } => self.key_inputs[3].is_pressed = false,
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    repeat: false,
+                    ..
+                } => {
+                    for (_, input) in self.key_inputs.iter_mut() {
+                        if keycode == input.keycode {
+                            input.is_pressed = true;
+                        }
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(keycode),
+                    repeat: false,
+                    ..
+                } => {
+                    for (_, input) in self.key_inputs.iter_mut() {
+                        if keycode == input.keycode {
+                            input.is_pressed = false;
+                        }
+                    }
+                }
+
                 _ => {}
             };
         }
