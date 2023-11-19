@@ -1,2 +1,2 @@
 pub mod line_2d;
-pub mod rotation;
+pub mod vector;

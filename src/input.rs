@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
-struct KeyInput {
+pub struct KeyInput {
     keycode: Keycode,
-    is_pressed: bool,
+    pub is_pressed: bool,
 }
 
 pub struct InputHandler {
-    key_inputs: HashMap<String, KeyInput>,
+    pub key_inputs: HashMap<String, KeyInput>,
 }
 
 impl InputHandler {
@@ -23,23 +23,37 @@ impl InputHandler {
                     },
                 ),
                 (
-                    "forwards".to_string(),
+                    "backwards".to_string(),
                     KeyInput {
                         keycode: Keycode::S,
                         is_pressed: false,
                     },
                 ),
                 (
-                    "forwards".to_string(),
+                    "left".to_string(),
                     KeyInput {
                         keycode: Keycode::A,
                         is_pressed: false,
                     },
                 ),
                 (
-                    "forwards".to_string(),
+                    "right".to_string(),
                     KeyInput {
                         keycode: Keycode::D,
+                        is_pressed: false,
+                    },
+                ),
+                (
+                    "turn_left".to_string(),
+                    KeyInput {
+                        keycode: Keycode::Left,
+                        is_pressed: false,
+                    },
+                ),
+                (
+                    "turn_right".to_string(),
+                    KeyInput {
+                        keycode: Keycode::Right,
                         is_pressed: false,
                     },
                 ),

@@ -5,7 +5,6 @@ use sdl2::rect::Point;
 use sdl2::render::WindowCanvas;
 
 use crate::math::line_2d::Line2D;
-use crate::math::rotation::Quaternion;
 use crate::player::Player;
 use crate::{level, WINDOW_HEIGHT, WINDOW_WIDTH};
 
@@ -14,15 +13,12 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
     canvas.clear();
 
     const FOV: f32 = PI / 2.0;
-    let cartesian_forward = Quaternion::new(0.0, 0.0, 1.0, 0.0)
-        .rotate(player.rotation)
-        .to_euler();
 
     for i in 0..WINDOW_WIDTH {
         // cast ray
-        let ray_direction = cartesian_forward.y - FOV / 2.0 + FOV * i as f32 / WINDOW_WIDTH as f32;
+        let ray_direction = player.rotation.y - FOV / 2.0 + FOV * i as f32 / WINDOW_WIDTH as f32;
         let m = ray_direction.tan();
-        let c = player.pos.2 - m * player.pos.0;
+        let c = player.pos.z - m * player.pos.x;
         let ray_line = Line2D::new(m, c);
 
         let xdir;
@@ -39,16 +35,18 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
             ydir = 1.0;
         }
 
-        let mut ray_pos = (player.pos.0, player.pos.2);
+        let mut ray_pos = (player.pos.x, player.pos.z);
         if xdir > 0.0 {
-            ray_pos.0 = player.pos.0.ceil();
+            ray_pos.0 = player.pos.x.ceil();
         } else {
-            ray_pos.0 = player.pos.0.floor();
+            ray_pos.0 = player.pos.x.floor();
         }
 
         let mut hit_x: f32 = 1e30;
         let mut hit_value: u8 = 0;
         loop {
+            ray_pos.1 = ray_line.y_from_x(ray_pos.0);
+
             if ray_pos.0 > level::MAP[0].len() as f32
                 || ray_pos.1 > level::MAP.len() as f32
                 || ray_pos.0 < 0.0
@@ -56,8 +54,6 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
             {
                 break;
             }
-
-            ray_pos.1 = ray_line.y_from_x(ray_pos.0);
 
             let hit = level::MAP[ray_pos.1.floor() as usize]
                 [level::MAP[0].len() - ray_pos.0.round() as usize];
@@ -70,11 +66,11 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
             ray_pos.0 += xdir;
         }
 
-        ray_pos = (player.pos.0, player.pos.2);
+        ray_pos = (player.pos.x, player.pos.z);
         if ydir > 0.0 {
-            ray_pos.1 = player.pos.2.ceil();
+            ray_pos.1 = player.pos.z.ceil();
         } else {
-            ray_pos.1 = player.pos.2.floor();
+            ray_pos.1 = player.pos.z.floor();
         }
 
         loop {
@@ -111,8 +107,8 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
                 4 => color = Color::BLUE,
                 _ => color = Color::MAGENTA,
             }
-            let hit_distance = ((ray_line.y_from_x(hit_x) - player.pos.2).powf(2.0)
-                + (hit_x - player.pos.0).powf(2.0))
+            let hit_distance = ((ray_line.y_from_x(hit_x) - player.pos.z).powf(2.0)
+                + (hit_x - player.pos.x).powf(2.0))
             .powf(0.5);
             let h;
             if hit_distance.abs() > 1e-20 {
