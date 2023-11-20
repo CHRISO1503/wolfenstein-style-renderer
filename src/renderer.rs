@@ -12,36 +12,42 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
 
-    const FOV: f32 = PI / 2.0;
+    const FOV: f32 = PI / 3.0;
 
     for i in 0..WINDOW_WIDTH {
         // cast ray
         let ray_direction = player.rotation.y - FOV / 2.0 + FOV * i as f32 / WINDOW_WIDTH as f32;
-        let m = ray_direction.tan();
-        let c = player.pos.z - m * player.pos.x;
-        let ray_line = Line2D::new(m, c);
 
         let xdir;
-        if ray_direction % 2.0 * PI < PI {
-            xdir = 1.0;
+        if ray_direction % (2.0 * PI) < PI {
+            xdir = 1;
         } else {
-            xdir = -1.0;
+            xdir = -1;
         }
 
         let ydir;
-        if ray_direction % 2.0 * PI < 3.0 * PI / 2.0 && ray_direction > PI / 2.0 {
-            ydir = -1.0;
+        if ray_direction % (2.0 * PI) < 3.0 * PI / 2.0 && ray_direction > PI / 2.0 {
+            ydir = -1;
         } else {
-            ydir = 1.0;
+            ydir = 1;
         }
 
+        let m = match xdir * ydir {
+            1 => (PI / 2.0 - ray_direction).tan(),
+            -1 => (ray_direction - PI / 2.0).tan(),
+            _ => 0.0,
+        };
+        let c = player.pos.z - m * player.pos.x;
+        let ray_line = Line2D::new(m, c);
+
         let mut ray_pos = (player.pos.x, player.pos.z);
-        if xdir > 0.0 {
+        if xdir == 1 {
             ray_pos.0 = player.pos.x.ceil();
         } else {
             ray_pos.0 = player.pos.x.floor();
         }
 
+        //TODO: Combine the two loops so as to not exhaust one before finding an obvious hit
         let mut hit_x: f32 = 1e30;
         let mut hit_value: u8 = 0;
         loop {
@@ -63,11 +69,11 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
                 break;
             }
 
-            ray_pos.0 += xdir;
+            ray_pos.0 += xdir as f32;
         }
 
         ray_pos = (player.pos.x, player.pos.z);
-        if ydir > 0.0 {
+        if ydir == 1 {
             ray_pos.1 = player.pos.z.ceil();
         } else {
             ray_pos.1 = player.pos.z.floor();
@@ -94,7 +100,7 @@ pub fn render(canvas: &mut WindowCanvas, player: &Player) {
                 }
             }
 
-            ray_pos.1 += ydir;
+            ray_pos.1 += ydir as f32;
         }
 
         // set wall height with

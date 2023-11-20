@@ -22,10 +22,10 @@ impl Player {
         let mut local_velocity = Vec3::zero();
 
         if input.key_inputs["forwards"].is_pressed {
-            local_velocity.z -= 1.0;
+            local_velocity.z += 1.0;
         }
         if input.key_inputs["backwards"].is_pressed {
-            local_velocity.z += 1.0;
+            local_velocity.z -= 1.0;
         }
         if input.key_inputs["left"].is_pressed {
             local_velocity.x -= 1.0;
@@ -40,7 +40,7 @@ impl Player {
             self.rotation.y += 1.0 * delta_time;
         }
 
-        self.velocity = local_velocity.rotate_y(self.rotation.y);
+        self.velocity = local_velocity.rotate_y(-self.rotation.y);
 
         self.pos.x += self.velocity.x * delta_time;
         self.pos.z += self.velocity.z * delta_time;
