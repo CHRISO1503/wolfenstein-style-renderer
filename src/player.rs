@@ -1,16 +1,13 @@
-use crate::{
-    input::InputHandler,
-    math::vector::{EulerAngle, Vec3},
-};
+use crate::{input::InputHandler, math::vector::Vec3};
 
 pub struct Player {
     pub pos: Vec3,
-    pub rotation: EulerAngle,
+    pub rotation: f32,
     pub velocity: Vec3,
 }
 
 impl Player {
-    pub fn new(pos: Vec3, rotation: EulerAngle) -> Self {
+    pub fn new(pos: Vec3, rotation: f32) -> Self {
         Self {
             pos,
             rotation,
@@ -34,13 +31,13 @@ impl Player {
             local_velocity.x += 1.0;
         }
         if input.key_inputs["turn_left"].is_pressed {
-            self.rotation.y -= 1.0 * delta_time;
+            self.rotation -= 1.0 * delta_time;
         }
         if input.key_inputs["turn_right"].is_pressed {
-            self.rotation.y += 1.0 * delta_time;
+            self.rotation += 1.0 * delta_time;
         }
 
-        self.velocity = local_velocity.rotate_y(-self.rotation.y);
+        self.velocity = local_velocity.rotate_y(-self.rotation);
 
         self.pos.x += self.velocity.x * delta_time;
         self.pos.z += self.velocity.z * delta_time;
