@@ -1,7 +1,7 @@
 use std::{f32::consts::PI, time::Instant};
 
 use input::InputHandler;
-use math::vector::Vec3;
+use math::vector::Vec2;
 use player::Player;
 
 mod input;
@@ -10,8 +10,8 @@ mod math;
 mod player;
 mod renderer;
 
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 600;
+const WINDOW_WIDTH: u32 = 400;
+const WINDOW_HEIGHT: u32 = 300;
 
 // Create window
 // Initialise entities
@@ -33,7 +33,7 @@ fn main() -> Result<(), String> {
 
     let mut input_handler = InputHandler::new();
 
-    let mut player = Player::new(Vec3::new(4.5, 0.0, 6.5), PI);
+    let mut player = Player::new(Vec2::new(2.0, 2.0), PI);
 
     let mut event_pump = sdl_context.event_pump()?;
     let mut time = Instant::now();

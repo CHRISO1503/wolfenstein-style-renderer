@@ -4,153 +4,126 @@ use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::render::WindowCanvas;
 
-use crate::math::line_2d::Line2D;
+use crate::math::vector::{Vec2, Vec2i};
 use crate::player::Player;
 use crate::{level, WINDOW_HEIGHT, WINDOW_WIDTH};
+
+struct Rayhit {
+    value: u8,
+    side: i32,
+    pos: Vec2,
+}
 
 pub fn render(canvas: &mut WindowCanvas, player: &Player) {
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
 
     const FOV: f32 = PI / 2.0;
+    let player_direction = Vec2::new(0.0, 1.0).rotate(player.rotation);
 
-    for i in 0..WINDOW_WIDTH {
-        // cast ray
-        let ray_direction = (player.rotation - FOV / 2.0 + FOV * i as f32 / WINDOW_WIDTH as f32)
-            .rem_euclid(2.0 * PI);
+    for x in 0..WINDOW_WIDTH {
+        let ray_direction =
+            player_direction.rotate(-FOV / 2.0 + x as f32 / WINDOW_WIDTH as f32 * FOV);
+        let mut ipos = Vec2i::new(player.pos.x as i32, player.pos.y as i32);
 
-        let xdir;
-        if ray_direction < PI {
-            xdir = 1;
-        } else {
-            xdir = -1;
-        }
-        let ydir;
-        if ray_direction > PI / 2.0 && ray_direction < 3.0 * PI / 2.0 {
-            ydir = -1;
-        } else {
-            ydir = 1;
-        }
-
-        let m = -(ray_direction - PI / 2.0).tan();
-        let c = player.pos.z - m * player.pos.x;
-        let ray_line = Line2D::new(m, c);
-
-        let grid_step_dists = (m.abs(), 1.0 / m.abs());
-
-        let mut ray_dists = (
-            if xdir == 1 {
-                ((player.pos.x.ceil() - player.pos.x).powf(2.0)
-                    + (ray_line.y_from_x(player.pos.x.ceil()) - player.pos.y).powf(2.0))
-                .sqrt()
+        let deltadist = Vec2::new(
+            if ray_direction.x.abs() < 1e-20 {
+                1e30
             } else {
-                ((player.pos.x.floor() - player.pos.x).powf(2.0)
-                    + (ray_line.y_from_x(player.pos.x.floor()) - player.pos.y).powf(2.0))
-                .sqrt()
+                (1.0 / ray_direction.x).abs()
             },
-            if ydir == 1 {
-                ((player.pos.x - ray_line.x_from_y(player.pos.y.ceil())).powf(2.0)
-                    + (player.pos.y.ceil() - player.pos.y).powf(2.0))
-                .sqrt()
+            if ray_direction.y.abs() < 1e-20 {
+                1e30
             } else {
-                ((player.pos.x - ray_line.x_from_y(player.pos.y.floor())).powf(2.0)
-                    + (player.pos.y.floor() - player.pos.y).powf(2.0))
-                .sqrt()
+                (1.0 / ray_direction.y).abs()
             },
         );
 
-        let player_grid = (
-            if xdir == 1 {
-                player.pos.x.ceil() as i32
+        let mut sidedist = Vec2::new(
+            if ray_direction.x < 0.0 {
+                deltadist.x * (player.pos.x - ipos.x as f32)
             } else {
-                player.pos.x.floor() as i32
+                deltadist.x * (ipos.x as f32 + 1.0 - player.pos.x)
             },
-            if ydir == 1 {
-                player.pos.y.ceil() as i32
+            if ray_direction.y < 0.0 {
+                deltadist.y * (player.pos.y - ipos.y as f32)
             } else {
-                player.pos.y.floor() as i32
+                deltadist.y * (ipos.y as f32 + 1.0 - player.pos.y)
             },
         );
 
-        let mut ray_grids = (0, 0);
+        let step = Vec2i::new(
+            if ray_direction.x > 0.0 { 1 } else { -1 },
+            if ray_direction.y > 0.0 { 1 } else { -1 },
+        );
 
-        let mut hit_value: u8 = 0;
-        let mut hit_distance;
-        loop {
-            let step;
-            let ray_coords;
-            if ray_dists.0 < ray_dists.1 {
-                hit_distance = ray_dists.0;
-                step = (1, 0);
-                ray_coords = (
-                    (player_grid.0 + ray_grids.0) as i32,
-                    ray_line
-                        .y_from_x(player_grid.0 as f32 + ray_grids.0 as f32)
-                        .floor() as i32,
-                );
+        let mut hit = Rayhit {
+            value: 0,
+            side: 0,
+            pos: Vec2::new(0.0, 0.0),
+        };
+
+        while hit.value == 0 {
+            if sidedist.x < sidedist.y {
+                sidedist.x += deltadist.x;
+                ipos.x += step.x;
+                hit.side = 0;
             } else {
-                //same in y direction
-                hit_distance = ray_dists.1;
-                step = (0, 1);
-                ray_coords = (
-                    ray_line
-                        .x_from_y(player_grid.1 as f32 + ray_grids.1 as f32)
-                        .floor() as i32,
-                    (player_grid.1 + ray_grids.1) as i32,
-                );
+                sidedist.y += deltadist.y;
+                ipos.y += step.y;
+                hit.side = 1;
             }
 
-            //check for ray hit
-            if level::MAP.len() as i32 - 1 - ray_coords.1 > 0
-                && level::MAP.len() as i32 - 1 - ray_coords.1 < level::MAP[0].len() as i32
-                && ray_coords.0 > 0
-                && ray_coords.0 < level::MAP.len() as i32
-            {
-                // hit
-                hit_value =
-                    level::MAP[level::MAP.len() - 1 - ray_coords.1 as usize][ray_coords.0 as usize];
-                if hit_value > 0 {
-                    break;
-                }
-            } else {
-                break;
-            }
+            assert!(
+                ipos.x >= 0
+                    && ipos.x < level::MAP[0].len() as i32
+                    && ipos.y >= 0
+                    && ipos.y < level::MAP.len() as i32,
+                "Out of bounds"
+            );
 
-            // move to next grid
-            ray_grids.0 += step.0 * xdir;
-            ray_dists.0 += step.0 as f32 * grid_step_dists.0;
-            ray_grids.1 += step.1 * ydir;
-            ray_dists.1 += step.1 as f32 * grid_step_dists.1;
+            hit.value = level::MAP[ipos.y as usize][ipos.x as usize];
         }
 
-        // set wall height with
-        if hit_value > 0 {
-            let color: Color;
-            match hit_value {
-                1 => color = Color::RED,
-                2 => color = Color::YELLOW,
-                3 => color = Color::GREEN,
-                4 => color = Color::BLUE,
-                _ => color = Color::MAGENTA,
-            }
-            let h;
-            if hit_distance > 1e-20 {
-                h = WINDOW_HEIGHT as f32 / hit_distance;
-            } else {
-                h = WINDOW_HEIGHT as f32;
-            }
-            let y0 = ((WINDOW_HEIGHT as i32 / 2) - h as i32 / 2).max(0);
-            let y1 = ((WINDOW_HEIGHT as i32 / 2) + h as i32 / 2).min(WINDOW_HEIGHT as i32 - 1);
-            canvas.set_draw_color(color);
-            draw_column(canvas, i as i32, y0, y1);
+        let mut color = match hit.value {
+            1 => Color::RED,
+            2 => Color::YELLOW,
+            3 => Color::GREEN,
+            4 => Color::BLUE,
+            _ => Color::MAGENTA,
+        };
+
+        if hit.side == 1 {
+            color.r = (color.r as f32 * 0.8) as u8;
+            color.g = (color.g as f32 * 0.8) as u8;
+            color.b = (color.b as f32 * 0.8) as u8;
         }
+
+        hit.pos = Vec2::new(player.pos.x + sidedist.x, player.pos.y + sidedist.y);
+        let dperp = if hit.side == 0 {
+            sidedist.x - deltadist.x
+        } else {
+            sidedist.y - deltadist.y
+        };
+
+        let h = WINDOW_HEIGHT as f32 / dperp;
+        let y0 = i32::max(WINDOW_HEIGHT as i32 / 2 - h as i32 / 2, 0);
+        let y1 = i32::min(
+            WINDOW_HEIGHT as i32 / 2 + h as i32 / 2,
+            WINDOW_HEIGHT as i32 - 1,
+        );
+
+        draw_column(canvas, x as i32, 0, y0, Color::RGB(50, 50, 50));
+        draw_column(canvas, x as i32, y0, y1, color);
+        draw_column(canvas, x as i32, y1, WINDOW_HEIGHT as i32 - 1, Color::CYAN);
     }
 
     canvas.present();
 }
 
-fn draw_column(canvas: &mut WindowCanvas, x: i32, y0: i32, y1: i32) {
+fn draw_column(canvas: &mut WindowCanvas, x: i32, y0: i32, y1: i32, color: Color) {
     for i in y0..y1 {
+        canvas.set_draw_color(color);
         let _ = canvas.draw_point(Point::new(x, i));
     }
 }
